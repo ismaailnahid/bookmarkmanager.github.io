@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pro Bookmark Manager | Manual Sort Only</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Toast Notification Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 20px;
+            min-width: 320px;
+            max-width: 420px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            pointer-events: auto;
+            animation: slideInRight 0.3s ease;
+            backdrop-filter: blur(10px);
+            border-left: 4px solid;
+        }
+
+        .toast-success {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #ffffff, #f0fdf4);
+        }
+        .toast-error {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #ffffff, #fef2f2);
+        }
+        .toast-info {
+            border-left-color: #3b82f6;
+            background: linear-gradient(135deg, #ffffff, #eff6ff);
+        }
+        .toast-warning {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #ffffff, #fffbeb);
+        }
+
+        .toast-icon {
+            font-size: 28px;
+        }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #1e293b;
+        }
+        .toast-message {
+            font-size: 13px;
+            color: #475569;
+        }
+        .toast-close {
+            cursor: pointer;
+            font-size: 18px;
+            color: #94a3b8;
+            transition: color 0.2s;
+            background: none;
+            border: none;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .toast-close:hover {
+            color: #475569;
+            background: rgba(0,0,0,0.05);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .toast-exit {
+            animation: slideOutRight 0.3s ease forwards;
+        }
+
+        /* Modal Dialog Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 28px;
+            max-width: 450px;
+            width: 90%;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            animation: scaleIn 0.2s ease;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            color: white;
+        }
+        .modal-header h3 {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-body input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .modal-body input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            background: #f8fafc;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .modal-btn {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .modal-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .modal-btn-cancel:hover {
+            background: #e2e8f0;
+        }
+        .modal-btn-confirm {
+            background: #3b82f6;
+            color: white;
+        }
+        .modal-btn-confirm:hover {
+            background: #2563eb;
+            transform: scale(0.98);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .app-container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .main-navbar {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .navbar-primary {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+        }
+
+        .navbar-primary h2 {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tools-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tool-group {
+            display: flex;
+            background: rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 4px;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .tool-group-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            padding: 0 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.12);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-1px);
+        }
+
+        .nav-btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .nav-btn-success { background: #10b981; }
+        .nav-btn-warning { background: #f59e0b; }
+        .nav-btn-danger { background: #ef4444; }
+
+        .navbar-secondary {
+            padding: 12px 24px;
+            background: white;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            justify-content: space-between;
+        }
+
+        .sort-group {
+            display: flex;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 5px 12px;
+            border-radius: 40px;
+            align-items: center;
+        }
+
+        .sort-group span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .sort-mode-btn {
+            background: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1e293b;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .sort-mode-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .sec-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #1e293b;
+        }
+
+        .sec-btn:hover {
+            background: #e2e8f0;
+            transform: scale(0.98);
+        }
+
+        .selection-info {
+            background: #e0e7ff;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1e40af;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 170px);
+        }
+
+        .tree-panel {
+            flex: 2;
+            background: white;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-panel {
+            flex: 1;
+            background: white;
+            border-radius: 28px;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+            padding: 24px;
+        }
+
+        .tree-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fefefe;
+        }
+
+        .tree-node {
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+        }
+
+        .folder-children {
+            margin-left: 28px;
+            padding-left: 12px;
+            border-left: 2px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .folder-children.collapsed {
+            display: none;
+        }
+
+        .node-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            margin: 6px 0;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .node-item:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        .node-item.selected {
+            background: #eef2ff;
+            border-color: #3b82f6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .node-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .checkbox-wrapper {
+            width: 22px;
+            flex-shrink: 0;
+        }
+
+        .checkbox-wrapper input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .folder-toggle {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 10px;
+            flex-shrink: 0;
+            font-weight: bold;
+            transition: all 0.15s;
+        }
+
+        .folder-toggle:hover {
+            background: #e2e8f0;
+            transform: scale(1.02);
+        }
+
+        .folder-icon, .bookmark-icon {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .bookmark-icon img {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+        }
+
+        .link-status {
+            font-size: 9px;
+            padding: 2px 10px;
+            border-radius: 30px;
+            margin-left: 8px;
+            font-weight: 600;
+        }
+
+        .status-valid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-invalid {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .node-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .node-title {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .empty-title {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: 400;
+        }
+
+        .node-url {
+            font-size: 11px;
+            color: #475569;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-header {
+            text-align: center;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #eef2ff;
+        }
+
+        .preview-favicon img, .preview-folder-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 24px;
+            background: #f1f5f9;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin: 0 auto;
+        }
+
+        .favicon-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .status-bar {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bulk-actions-bar {
+            background: #fefce8;
+            padding: 12px 20px;
+            border-bottom: 1px solid #fde047;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="main-navbar">
+        <div class="navbar-primary">
+            <h2>📚 Bookmark Manager Pro</h2>
+            <div class="tools-grid">
+                <div class="tool-group"><span class="tool-group-title">FILE</span>
+                    <button class="nav-btn" id="loadBtn">📂 Load</button>
+                    <button class="nav-btn" id="saveBtn">💾 Save</button>
+                </div>
+                <div class="tool-group"><span class="tool-group-title">ACTIONS</span>
+                    <button class="nav-btn nav-btn-primary" id="addRootFolderBtn">📁 New Folder</button>
+                    <button class="nav-btn nav-btn-success" id="checkLinksBtn">🔍 Check Links</button>
+                    <button class="nav-btn nav-btn-warning" id="syncFaviconBtn">🔄 Sync Favicons</button>
+                    <button class="nav-btn" id="syncTitleBtn">🏷️ Sync Titles</button>
+                </div>
+                <div class="tool-group"><span class="tool-group-title">EDIT</span>
+                    <button class="nav-btn" id="editSelectedBtn">✏️ Edit</button>
+                    <button class="nav-btn nav-btn-danger" id="deleteSelectedBtn">🗑️ Delete</button>
+                    <button class="nav-btn" id="copySelectedBtn">📋 Copy</button>
+                    <button class="nav-btn" id="pasteBtn">📎 Paste</button>
+                </div>
+                <div class="tool-group"><span class="tool-group-title">MOVE</span>
+                    <button class="nav-btn" id="moveUpBtn">⬆️ Up</button>
+                    <button class="nav-btn" id="moveDownBtn">⬇️ Down</button>
+                    <button class="nav-btn" id="moveToFolderBtn">📁 Move To</button>
+                </div>
+                <div class="tool-group"><span class="tool-group-title">VIEW</span>
+                    <button class="nav-btn" id="expandAllBtn">📂 Expand All</button>
+                    <button class="nav-btn" id="collapseAllBtn">📁 Collapse All</button>
+                </div>
+            </div>
+        </div>
+        <div class="navbar-secondary">
+            <div class="sort-group">
+                <span>📊 Sort Mode:</span>
+                <button class="sort-mode-btn" data-sort-mode="folder-only">📁 Folder Short (Only Folders)</button>
+                <button class="sort-mode-btn" data-sort-mode="title-short">🔤 Title Short (Inside Folder)</button>
+            </div>
+            <div class="selection-info" id="selectionInfo">0 selected</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="tree-panel">
+            <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+                <span id="selectedCountBadge" style="font-weight: 700;">0 selected</span>
+                <button class="sec-btn" id="bulkSelectAllBtn">✓ Select All</button>
+                <button class="sec-btn" id="bulkClearAllBtn">✗ Clear All</button>
+            </div>
+            <div class="tree-container" id="treeContainer">
+                <div style="padding: 60px; text-align: center; color: #94a3b8;">📂 Click 'Load' to import bookmarks.html</div>
+            </div>
+            <div class="status-bar" id="statusBar"><span>📊 Ready</span><span id="itemCount">0 items</span></div>
+        </div>
+        <div class="preview-panel" id="previewPanel">
+            <div style="text-align: center; color: #94a3b8; padding: 40px;">👈 Select a bookmark or folder to preview/edit</div>
+        </div>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+    // Toast notification system
+    function showToast(title, message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close">✕</button>
+        `;
+        
+        container.appendChild(toast);
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => {
+            toast.classList.add('toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        });
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+    
+    // Custom prompt modal
+    function showPrompt(title, defaultValue = '', placeholder = '') {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>✏️ ${title}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="promptInput" placeholder="${placeholder}" value="${defaultValue.replace(/"/g, '&quot;')}" autofocus>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="modal-btn modal-btn-cancel" id="promptCancel">Cancel</button>
+                        <button class="modal-btn modal-btn-confirm" id="promptConfirm">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            const input = overlay.querySelector('#promptInput');
+            input.focus();
+            input.select();
+            
+            const close = (value) => {
+                overlay.remove();
+                resolve(value);
+            };
+            
+            overlay.querySelector('#promptConfirm').onclick = () => close(input.value);
+            overlay.querySelector('#promptCancel').onclick = () => close(null);
+            input.onkeypress = (e) => { if (e.key === 'Enter') close(input.value); };
+        });
+    }
+    
+    // Custom confirm modal
+    function showConfirm(title, message) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="color: #475569;">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="modal-btn modal-btn-cancel" id="confirmNo">Cancel</button>
+                        <button class="modal-btn modal-btn-confirm" id="confirmYes">Confirm</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#confirmYes').onclick = () => { overlay.remove(); resolve(true); };
+            overlay.querySelector('#confirmNo').onclick = () => { overlay.remove(); resolve(false); };
+        });
+    }
+
+    let bookmarkTree = [];
+    let copiedItems = [];
+    let collapsedFolders = new Set();
+    let faviconCache = new Map();
+    let linkStatusCache = new Map();
+    let selectedItems = new Set();
+    
+    // Sort mode state - initially null (no sort applied)
+    let currentSortMode = null;
+
+    function uid() { return Date.now() + '-' + Math.random().toString(36).substr(2, 8); }
+    function getCurrentTimestamp() { return String(Math.floor(Date.now() / 1000)); }
+
+    function getSmartFavicon(url) {
+        if (!url || url === '#') return '';
+        if (faviconCache.has(url)) return faviconCache.get(url);
+        try {
+            const urlObj = new URL(url);
+            let domain = urlObj.hostname.replace(/^www\./, '');
+            const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            faviconCache.set(url, faviconUrl);
+            return faviconUrl;
+        } catch(e) { return ''; }
+    }
+
+    async function fetchPageTitle(url) {
+        if (!url || url === '#') return null;
+        try {
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 6000);
+            const response = await fetch(url, { signal: controller.signal });
+            const html = await response.text();
+            const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+            if (titleMatch && titleMatch[1]) return titleMatch[1].trim().substring(0, 200);
+            return null;
+        } catch(e) { return null; }
+    }
+
+    async function syncAllTitles() {
+        const bookmarks = [];
+        function collect(nodes) {
+            for (const node of nodes) {
+                if (node.type === 'bookmark' && node.url && node.url !== '#') bookmarks.push(node);
+                if (node.type === 'folder' && node.children) collect(node.children);
+            }
+        }
+        collect(bookmarkTree);
+        if (bookmarks.length === 0) { 
+            showToast('No Bookmarks', 'No bookmarks found to sync titles!', 'warning');
+            return; 
+        }
+        let updatedCount = 0;
+        for (let i = 0; i < bookmarks.length; i++) {
+            const bookmark = bookmarks[i];
+            if (!bookmark.title || bookmark.title.trim() === '') {
+                const newTitle = await fetchPageTitle(bookmark.url);
+                if (newTitle && newTitle.length > 0) {
+                    bookmark.title = newTitle;
+                    updatedCount++;
+                } else if (!bookmark.title) {
+                    try {
+                        let fallback = new URL(bookmark.url).hostname.replace(/^www\./, '');
+                        bookmark.title = fallback || 'Untitled';
+                    } catch(e) { bookmark.title = 'Untitled'; }
+                    updatedCount++;
+                }
+            }
+            renderFullTree();
+        }
+        renderFullTree();
+        updateStatusBar();
+        showToast('Sync Complete', `Updated ${updatedCount} empty bookmarks with page titles!`, 'success');
+    }
+
+    async function checkUrlValidity(url) {
+        if (!url || url === '#') return { valid: false };
+        if (linkStatusCache.has(url)) return linkStatusCache.get(url);
+        try {
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 4000);
+            await fetch(url, { method: 'HEAD', mode: 'no-cors', signal: controller.signal });
+            const result = { valid: true };
+            linkStatusCache.set(url, result);
+            return result;
+        } catch(e) { const result = { valid: false }; linkStatusCache.set(url, result); return result; }
+    }
+
+    async function checkAllLinks() {
+        const bookmarks = [];
+        function collect(nodes) {
+            for (const node of nodes) {
+                if (node.type === 'bookmark' && node.url && node.url !== '#') bookmarks.push(node);
+                if (node.type === 'folder' && node.children) collect(node.children);
+            }
+        }
+        collect(bookmarkTree);
+        if (bookmarks.length === 0) {
+            showToast('No Links', 'No bookmarks to check!', 'warning');
+            return;
+        }
+        for (let i = 0; i < bookmarks.length; i++) {
+            await checkUrlValidity(bookmarks[i].url);
+            renderFullTree();
+        }
+        renderFullTree();
+        updateStatusBar();
+        showToast('Link Check Complete', `Checked ${bookmarks.length} links!`, 'success');
+    }
+
+    function countItems(nodes) {
+        let count = 0;
+        for (const node of nodes) {
+            count++;
+            if (node.type === 'folder' && node.children) count += countItems(node.children);
+        }
+        return count;
+    }
+
+    function updateStatusBar() {
+        const count = countItems(bookmarkTree);
+        const itemCountSpan = document.getElementById('itemCount');
+        const selectionInfoSpan = document.getElementById('selectionInfo');
+        const bulkBar = document.getElementById('bulkActionsBar');
+        const selectedCountBadge = document.getElementById('selectedCountBadge');
+        if (itemCountSpan) itemCountSpan.innerText = `${count} items`;
+        if (selectionInfoSpan) selectionInfoSpan.innerText = `${selectedItems.size} selected`;
+        const statusSpan = document.getElementById('statusBar');
+        if (statusSpan) statusSpan.innerHTML = `<span>📊 ${count} total</span><span>${selectedItems.size} selected</span>`;
+        if (bulkBar) {
+            bulkBar.style.display = selectedItems.size > 0 ? 'flex' : 'none';
+            if (selectedCountBadge) selectedCountBadge.innerText = `${selectedItems.size} selected`;
+        }
+    }
+
+    // Sorting functions - only called when user clicks sort buttons
+    function applyFolderOnlySort(nodes) {
+        nodes.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') return -1;
+            if (a.type !== 'folder' && b.type === 'folder') return 1;
+            if (a.type === 'folder' && b.type === 'folder') {
+                return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase());
+            }
+            return 0;
+        });
+        for (const node of nodes) {
+            if (node.type === 'folder' && node.children) {
+                applyFolderOnlySort(node.children);
+            }
+        }
+    }
+
+    function applyTitleShortSort(nodes) {
+        const folders = nodes.filter(n => n.type === 'folder');
+        const bookmarks = nodes.filter(n => n.type === 'bookmark');
+        bookmarks.sort((a, b) => {
+            return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase());
+        });
+        nodes.length = 0;
+        nodes.push(...folders, ...bookmarks);
+        for (const node of nodes) {
+            if (node.type === 'folder' && node.children) {
+                applyTitleShortSort(node.children);
+            }
+        }
+    }
+
+    function applySorting() {
+        if (!bookmarkTree.length) return;
+        if (currentSortMode === 'folder-only') {
+            applyFolderOnlySort(bookmarkTree);
+        } else if (currentSortMode === 'title-short') {
+            applyTitleShortSort(bookmarkTree);
+        }
+        renderFullTree();
+    }
+
+    function sortFolderOnly() {
+        currentSortMode = 'folder-only';
+        applySorting();
+        updateStatusBar();
+        document.querySelectorAll('.sort-mode-btn').forEach(btn => {
+            if (btn.getAttribute('data-sort-mode') === 'folder-only') btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        showToast('Sort Mode', 'Folder Short (Only Folders) activated', 'info');
+    }
+
+    function sortByTitleShort() {
+        currentSortMode = 'title-short';
+        applySorting();
+        updateStatusBar();
+        document.querySelectorAll('.sort-mode-btn').forEach(btn => {
+            if (btn.getAttribute('data-sort-mode') === 'title-short') btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        showToast('Sort Mode', 'Title Short (Inside Folder) activated', 'info');
+    }
+
+    function expandAllFolders() {
+        function expandRecursive(nodes) {
+            for (const node of nodes) {
+                if (node.type === 'folder') {
+                    collapsedFolders.delete(node.id);
+                    if (node.children && node.children.length) {
+                        expandRecursive(node.children);
+                    }
+                }
+            }
+        }
+        expandRecursive(bookmarkTree);
+        renderFullTree();
+        showToast('Expanded', 'All folders expanded', 'success');
+    }
+
+    function collapseAllFolders() {
+        function collapseRecursive(nodes) {
+            for (const node of nodes) {
+                if (node.type === 'folder') {
+                    collapsedFolders.add(node.id);
+                    if (node.children && node.children.length) {
+                        collapseRecursive(node.children);
+                    }
+                }
+            }
+        }
+        collapseRecursive(bookmarkTree);
+        renderFullTree();
+        showToast('Collapsed', 'All folders collapsed', 'success');
+    }
+
+    function toggleFolder(folderId) {
+        if (collapsedFolders.has(folderId)) {
+            collapsedFolders.delete(folderId);
+        } else {
+            collapsedFolders.add(folderId);
+        }
+        renderFullTree();
+    }
+
+    function findNodeAndPath(nodes, id, path = []) {
+        for (let i = 0; i < nodes.length; i++) {
+            if (nodes[i].id === id) return { node: nodes[i], parent: path[path.length-1] || null, index: i, parents: [...path] };
+            if (nodes[i].type === 'folder' && nodes[i].children) {
+                const found = findNodeAndPath(nodes[i].children, id, [...path, nodes[i]]);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    function deleteNodeById(nodes, id) {
+        for (let i = 0; i < nodes.length; i++) {
+            if (nodes[i].id === id) { nodes.splice(i, 1); return true; }
+            if (nodes[i].type === 'folder' && nodes[i].children) {
+                if (deleteNodeById(nodes[i].children, id)) return true;
+            }
+        }
+        return false;
+    }
+
+    function selectAllItems() {
+        function collectIds(nodes) {
+            for (const node of nodes) {
+                selectedItems.add(node.id);
+                if (node.type === 'folder' && node.children) collectIds(node.children);
+            }
+        }
+        collectIds(bookmarkTree);
+        renderFullTree();
+        updateStatusBar();
+        showToast('Selected', `${selectedItems.size} items selected`, 'info');
+    }
+
+    function clearAllSelections() { 
+        selectedItems.clear(); 
+        renderFullTree(); 
+        updateStatusBar();
+        showToast('Cleared', 'All selections cleared', 'info');
+    }
+    
+    async function editSelected() {
+        if (selectedItems.size !== 1) { 
+            showToast('Edit Error', 'Please select exactly one item to edit', 'warning');
+            return; 
+        }
+        const id = Array.from(selectedItems)[0];
+        const path = findNodeAndPath(bookmarkTree, id);
+        if (!path) return;
+        const node = path.node;
+        
+        if (node.type === 'folder') {
+            const newTitle = await showPrompt('Edit Folder Name', node.title || '', 'Enter folder name');
+            if (newTitle !== null && newTitle !== undefined) node.title = newTitle;
+            const newIcon = await showPrompt('Edit Folder Icon', node.icon || '📁', 'Enter emoji (📁, 📂, 🗂️)');
+            if (newIcon !== null && newIcon !== undefined && newIcon.trim() !== '') node.icon = newIcon;
+        } else if (node.type === 'bookmark') {
+            const newTitle = await showPrompt('Edit Bookmark Title', node.title || '', 'Enter title');
+            if (newTitle !== null && newTitle !== undefined) node.title = newTitle;
+            const newUrl = await showPrompt('Edit URL', node.url || '', 'https://...');
+            if (newUrl !== null && newUrl !== undefined) { node.url = newUrl; node.icon = getSmartFavicon(node.url); }
+        }
+        // Re-apply current sort if any
+        if (currentSortMode) applySorting();
+        else renderFullTree();
+        if (node.type === 'bookmark') updatePreview(node);
+        else if (node.type === 'folder') updateFolderPreview(node);
+        showToast('Updated', `${node.type === 'folder' ? 'Folder' : 'Bookmark'} updated successfully`, 'success');
+    }
+    
+    async function deleteSelected() {
+        if (selectedItems.size === 0) {
+            showToast('Delete Error', 'No items selected', 'warning');
+            return;
+        }
+        const confirmed = await showConfirm('Confirm Delete', `Are you sure you want to delete ${selectedItems.size} item(s)? This cannot be undone.`);
+        if (confirmed) {
+            Array.from(selectedItems).forEach(id => deleteNodeById(bookmarkTree, id));
+            selectedItems.clear();
+            if (currentSortMode) applySorting();
+            else renderFullTree();
+            updatePreview(null);
+            showToast('Deleted', `${selectedItems.size} item(s) deleted successfully`, 'success');
+        }
+    }
+    
+    function copySelected() {
+        if (selectedItems.size === 0) { 
+            showToast('Copy Error', 'No items selected to copy', 'warning');
+            return; 
+        }
+        copiedItems = [];
+        for (const id of selectedItems) {
+            const path = findNodeAndPath(bookmarkTree, id);
+            if (path) copiedItems.push(JSON.parse(JSON.stringify(path.node)));
+        }
+        showToast('Copied', `Copied ${copiedItems.length} item(s)`, 'success');
+    }
+    
+    function pasteItem() {
+        if (copiedItems.length === 0) { 
+            showToast('Paste Error', 'Nothing to paste. Copy items first.', 'warning');
+            return; 
+        }
+        let targetParent = null;
+        if (selectedItems.size === 1) {
+            const id = Array.from(selectedItems)[0];
+            const target = findNodeAndPath(bookmarkTree, id);
+            if (target && target.node.type === 'folder') {
+                targetParent = target.node;
+            }
+        }
+        const newItems = copiedItems.map(item => { let copy = JSON.parse(JSON.stringify(item)); copy.id = uid(); return copy; });
+        if (targetParent) { if (!targetParent.children) targetParent.children = []; targetParent.children.push(...newItems); }
+        else { bookmarkTree.push(...newItems); }
+        if (currentSortMode) applySorting();
+        else renderFullTree();
+        showToast('Pasted', `Pasted ${newItems.length} item(s)`, 'success');
+    }
+    
+    function moveUp() {
+        if (selectedItems.size !== 1) { 
+            showToast('Move Error', 'Select exactly one item to move up', 'warning');
+            return; 
+        }
+        const id = Array.from(selectedItems)[0];
+        const path = findNodeAndPath(bookmarkTree, id);
+        if (path && path.parent && path.index > 0) {
+            const temp = path.parent.children[path.index];
+            path.parent.children[path.index] = path.parent.children[path.index - 1];
+            path.parent.children[path.index - 1] = temp;
+            if (currentSortMode) applySorting();
+            else renderFullTree();
+            showToast('Moved', 'Item moved up', 'success');
+        }
+    }
+    
+    function moveDown() {
+        if (selectedItems.size !== 1) { 
+            showToast('Move Error', 'Select exactly one item to move down', 'warning');
+            return; 
+        }
+        const id = Array.from(selectedItems)[0];
+        const path = findNodeAndPath(bookmarkTree, id);
+        if (path && path.parent && path.index < path.parent.children.length - 1) {
+            const temp = path.parent.children[path.index];
+            path.parent.children[path.index] = path.parent.children[path.index + 1];
+            path.parent.children[path.index + 1] = temp;
+            if (currentSortMode) applySorting();
+            else renderFullTree();
+            showToast('Moved', 'Item moved down', 'success');
+        }
+    }
+    
+    async function moveToFolder() {
+        if (selectedItems.size === 0) {
+            showToast('Move Error', 'Select items to move', 'warning');
+            return;
+        }
+        const folderName = await showPrompt('Move Items', 'Moved Items', 'Destination folder name');
+        if (!folderName) return;
+        let destFolder = null;
+        function findFolder(nodes, name) {
+            for (const node of nodes) {
+                if (node.type === 'folder' && node.title === name) return node;
+                if (node.type === 'folder' && node.children) { const found = findFolder(node.children, name); if (found) return found; }
+            }
+            return null;
+        }
+        destFolder = findFolder(bookmarkTree, folderName);
+        if (!destFolder) {
+            destFolder = { id: uid(), type: 'folder', title: folderName, add_date: getCurrentTimestamp(), children: [], icon: '📁' };
+            bookmarkTree.push(destFolder);
+        }
+        const ids = Array.from(selectedItems);
+        const itemsToMove = [];
+        ids.forEach(id => { const path = findNodeAndPath(bookmarkTree, id); if (path && path.node) itemsToMove.push({ node: path.node, path }); });
+        itemsToMove.sort((a,b) => b.path.index - a.path.index);
+        itemsToMove.forEach(item => { destFolder.children.push(JSON.parse(JSON.stringify(item.node))); deleteNodeById(bookmarkTree, item.node.id); });
+        selectedItems.clear();
+        if (currentSortMode) applySorting();
+        else renderFullTree();
+        showToast('Moved', `Moved ${itemsToMove.length} item(s) to "${folderName}"`, 'success');
+    }
+    
+    function addBookmarkToRoot() {
+        bookmarkTree.push({ id: uid(), type: 'bookmark', title: '', url: 'https://example.com', add_date: getCurrentTimestamp(), icon: '' });
+        if (currentSortMode) applySorting();
+        else renderFullTree();
+        showToast('Added', 'New bookmark added to root', 'success');
+    }
+    
+    function addRootFolder() {
+        bookmarkTree.push({ id: uid(), type: 'folder', title: 'New Folder', add_date: getCurrentTimestamp(), children: [], icon: '📁' });
+        if (currentSortMode) applySorting();
+        else renderFullTree();
+        showToast('Added', 'New folder added to root', 'success');
+    }
+
+    function parseNetscapeHTML(htmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+        let rootDL = doc.querySelector('DL');
+        if (!rootDL) { const h1 = doc.querySelector('H1'); if (h1 && h1.nextElementSibling?.tagName === 'DL') rootDL = h1.nextElementSibling; }
+        if (!rootDL) return [];
+        function parseNode(dlElement) {
+            const items = [];
+            const children = Array.from(dlElement.children);
+            for (let i = 0; i < children.length; i++) {
+                const el = children[i];
+                if (el.tagName === 'DT') {
+                    const h3 = el.querySelector('H3');
+                    const a = el.querySelector('A');
+                    if (h3) {
+                        let nextDL = el.querySelector('DL');
+                        if (!nextDL) { let nxt = i+1; while (nxt < children.length && children[nxt].tagName !== 'DL') nxt++; if (nxt < children.length) nextDL = children[nxt]; }
+                        const folder = { id: uid(), type: 'folder', title: h3.textContent || 'Unnamed', add_date: h3.getAttribute('ADD_DATE') || getCurrentTimestamp(), last_modified: h3.getAttribute('LAST_MODIFIED') || '', children: [], icon: '📁' };
+                        if (nextDL) folder.children = parseNode(nextDL);
+                        items.push(folder);
+                    } else if (a) {
+                        items.push({ id: uid(), type: 'bookmark', title: a.textContent || '', url: a.getAttribute('HREF') || '#', add_date: a.getAttribute('ADD_DATE') || getCurrentTimestamp(), icon: a.getAttribute('ICON') || getSmartFavicon(a.getAttribute('HREF')) });
+                    }
+                }
+            }
+            return items;
+        }
+        return parseNode(rootDL);
+    }
+    
+    function exportToNetscape(tree) {
+        function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function escapeContent(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function generate(nodes, level) { let html = ''; const indent = '    '.repeat(level); for (const node of nodes) { if (node.type === 'folder') { html += `${indent}<DT><H3 ADD_DATE="${escapeAttr(node.add_date)}">${escapeContent(node.title)}</H3>\n${indent}<DL><p>\n`; if (node.children) html += generate(node.children, level+1); html += `${indent}</DL><p>\n`; } else if (node.type === 'bookmark') { html += `${indent}<DT><A ADD_DATE="${escapeAttr(node.add_date)}" HREF="${escapeAttr(node.url)}">${escapeContent(node.title)}</A>\n`; } } return html; }
+        return `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n${generate(tree, 1)}\n</DL><p>`;
+    }
+
+    function updateFolderPreview(node) {
+        const panel = document.getElementById('previewPanel');
+        if (!panel) return;
+        if (!node || node.type !== 'folder') { 
+            panel.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:40px;">👈 Select a bookmark or folder to preview/edit</div>`; 
+            return; 
+        }
+        const folderIcon = node.icon || '📁';
+        const itemCount = node.children ? node.children.length : 0;
+        
+        panel.innerHTML = `
+            <div class="preview-header">
+                <div class="preview-folder-icon" style="font-size: 64px;">${folderIcon}</div>
+                <div class="preview-title"><strong>${escapeHtml(node.title || 'Unnamed Folder')}</strong></div>
+                <div style="margin-top:8px;">📊 Contains ${itemCount} item(s)</div>
+            </div>
+            <div style="margin-top:20px;">
+                <h4>🔧 Folder Settings</h4>
+                <input type="text" id="editFolderName" class="favicon-input" placeholder="Folder Name" value="${escapeHtml(node.title)}">
+                <input type="text" id="editFolderIcon" class="favicon-input" placeholder="Folder Icon (emoji like 📁, 📂, 🗂️)" value="${folderIcon}">
+                <button class="sec-btn" id="saveFolderBtn" style="width:100%; margin-top:8px;">💾 Save Folder Changes</button>
+            </div>
+        `;
+        
+        document.getElementById('saveFolderBtn')?.addEventListener('click', () => {
+            const newName = document.getElementById('editFolderName').value;
+            const newIcon = document.getElementById('editFolderIcon').value;
+            if (newName !== undefined) node.title = newName;
+            if (newIcon !== undefined && newIcon.trim() !== '') node.icon = newIcon;
+            if (currentSortMode) applySorting();
+            else renderFullTree();
+            updateFolderPreview(node);
+            showToast('Folder Updated', 'Folder settings saved', 'success');
+        });
+    }
+
+    function updatePreview(node) {
+        const panel = document.getElementById('previewPanel');
+        if (!panel) return;
+        
+        if (!node) {
+            panel.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:40px;">👈 Select a bookmark or folder to preview/edit</div>`;
+            return;
+        }
+        
+        if (node.type === 'folder') {
+            updateFolderPreview(node);
+            return;
+        }
+        
+        if (node.type === 'bookmark') {
+            const fav = node.icon || getSmartFavicon(node.url);
+            const status = linkStatusCache.get(node.url);
+            const statusHtml = status ? (status.valid ? '✅ Valid' : '❌ Invalid') : '⏳ Not checked';
+            panel.innerHTML = `
+                <div class="preview-header">
+                    <div class="preview-favicon"><img src="${fav}" onerror="this.src='https://www.google.com/s2/favicons?domain=default&sz=64'"></div>
+                    <div class="preview-title"><strong>${escapeHtml(node.title || '(Empty Title)')}</strong></div>
+                    <div class="preview-url"><a href="${escapeHtml(node.url)}" target="_blank">${escapeHtml(node.url)}</a></div>
+                    <div style="margin-top:8px;">${statusHtml}</div>
+                </div>
+                <div style="margin-top:20px;">
+                    <h4>🔧 Favicon Settings</h4>
+                    <input type="text" id="customFavicon" class="favicon-input" placeholder="Custom Favicon URL" value="${node.icon || ''}">
+                    <button class="sec-btn" id="updateFavBtn" style="width:100%">Update Favicon</button>
+                </div>
+                <div style="margin-top:20px;">
+                    <h4>📝 Edit Bookmark</h4>
+                    <input type="text" id="editTitlePreview" class="favicon-input" placeholder="Title" value="${escapeHtml(node.title)}">
+                    <input type="text" id="editUrlPreview" class="favicon-input" placeholder="URL" value="${escapeHtml(node.url)}">
+                    <button class="sec-btn" id="savePreviewBtn" style="width:100%">Save Changes</button>
+                </div>
+            `;
+            document.getElementById('updateFavBtn')?.addEventListener('click', () => { 
+                node.icon = document.getElementById('customFavicon').value; 
+                renderFullTree(); 
+                updatePreview(node);
+                showToast('Favicon Updated', 'Bookmark favicon updated', 'success');
+            });
+            document.getElementById('savePreviewBtn')?.addEventListener('click', () => { 
+                node.title = document.getElementById('editTitlePreview').value; 
+                node.url = document.getElementById('editUrlPreview').value; 
+                if (!node.icon && node.url) node.icon = getSmartFavicon(node.url); 
+                if (currentSortMode) applySorting();
+                else renderFullTree();
+                updatePreview(node);
+                showToast('Bookmark Updated', 'Bookmark saved successfully', 'success');
+            });
+        }
+    }
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    
+    function renderTree(container, nodes) {
+        if (!container) return;
+        if (nodes.length === 0 && (!container.querySelector('.tree-node') && !container.children.length)) { 
+            container.innerHTML = '<div style="padding:60px;text-align:center;color:#94a3b8;">📂 No bookmarks found. Click "Load" to import.</div>'; 
+            return; 
+        }
+        const ul = document.createElement('ul'); ul.className = 'tree-node';
+        for (const node of nodes) {
+            const li = document.createElement('li'); 
+            const divItem = document.createElement('div'); 
+            divItem.className = `node-item ${selectedItems.has(node.id) ? 'selected' : ''}`;
+            divItem.onclick = (e) => { 
+                if (e.target.closest('.checkbox-wrapper') || e.target.closest('.folder-toggle')) return; 
+                updatePreview(node);
+            };
+            const contentDiv = document.createElement('div'); contentDiv.className = 'node-content';
+            const cbDiv = document.createElement('div'); cbDiv.className = 'checkbox-wrapper'; 
+            const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = selectedItems.has(node.id);
+            cb.onclick = (e) => { e.stopPropagation(); selectedItems.has(node.id) ? selectedItems.delete(node.id) : selectedItems.add(node.id); updateStatusBar(); renderFullTree(); };
+            cbDiv.appendChild(cb); contentDiv.appendChild(cbDiv);
+            
+            if (node.type === 'folder') { 
+                const toggle = document.createElement('button'); 
+                toggle.className = 'folder-toggle'; 
+                toggle.innerHTML = collapsedFolders.has(node.id) ? '▶' : '▼'; 
+                toggle.onclick = (e) => { e.stopPropagation(); toggleFolder(node.id); }; 
+                contentDiv.appendChild(toggle); 
+            } else { 
+                const spacer = document.createElement('span'); spacer.style.width = '28px'; contentDiv.appendChild(spacer); 
+            }
+            
+            const iconSpan = document.createElement('span'); iconSpan.className = node.type === 'folder' ? 'folder-icon' : 'bookmark-icon';
+            if (node.type === 'folder') { 
+                iconSpan.innerHTML = node.icon || '📁'; 
+            } else { 
+                const fav = node.icon || getSmartFavicon(node.url); 
+                iconSpan.innerHTML = fav ? `<img src="${fav}" onerror="this.src='https://www.google.com/s2/favicons?domain=default&sz=32'">` : '🔗'; 
+            }
+            
+            const infoDiv = document.createElement('div'); infoDiv.className = 'node-info'; 
+            const titleSpan = document.createElement('div'); titleSpan.className = 'node-title'; 
+            titleSpan.innerHTML = node.title ? escapeHtml(node.title) : '<span class="empty-title">(Empty Title)</span>';
+            if (node.type === 'bookmark' && node.url) { 
+                const status = linkStatusCache.get(node.url); 
+                if (status) { 
+                    const statSpan = document.createElement('span'); 
+                    statSpan.className = `link-status ${status.valid ? 'status-valid' : 'status-invalid'}`; 
+                    statSpan.textContent = status.valid ? 'Live' : 'Dead'; 
+                    titleSpan.appendChild(statSpan); 
+                } 
+            }
+            infoDiv.appendChild(titleSpan); 
+            if (node.type === 'bookmark' && node.url) { 
+                const urlSpan = document.createElement('div'); urlSpan.className = 'node-url'; 
+                urlSpan.textContent = node.url.length > 70 ? node.url.substring(0,70)+'...' : node.url; 
+                infoDiv.appendChild(urlSpan); 
+            }
+            contentDiv.appendChild(iconSpan); contentDiv.appendChild(infoDiv); 
+            divItem.appendChild(contentDiv); li.appendChild(divItem);
+            
+            if (node.type === 'folder' && node.children && node.children.length) { 
+                const childContainer = document.createElement('div'); 
+                childContainer.className = `folder-children ${collapsedFolders.has(node.id) ? 'collapsed' : ''}`; 
+                renderTree(childContainer, node.children); 
+                li.appendChild(childContainer); 
+            }
+            ul.appendChild(li);
+        }
+        container.innerHTML = ''; container.appendChild(ul); updateStatusBar();
+    }
+    
+    function renderFullTree() { const container = document.getElementById('treeContainer'); if (container) renderTree(container, bookmarkTree); }
+
+    // Event bindings
+    document.getElementById('loadBtn')?.addEventListener('click', () => { 
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.html,.htm'; 
+        inp.onchange = (e) => { 
+            const file = e.target.files[0]; if (!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = (ev) => { 
+                try { 
+                    const parsed = parseNetscapeHTML(ev.target.result); 
+                    if (parsed.length) { 
+                        bookmarkTree = parsed; 
+                        selectedItems.clear(); 
+                        collapsedFolders.clear(); 
+                        currentSortMode = null; // Reset sort mode
+                        // Remove active class from sort buttons
+                        document.querySelectorAll('.sort-mode-btn').forEach(btn => btn.classList.remove('active'));
+                        renderFullTree(); 
+                        updatePreview(null); 
+                        updateStatusBar(); 
+                        showToast('Loaded', `Loaded ${countItems(bookmarkTree)} items!`, 'success');
+                    } else showToast('Error', 'No bookmarks found in file', 'warning');
+                } catch(err) { showToast('Error', 'Failed to parse file: ' + err.message, 'error'); } 
+            }; reader.readAsText(file, 'UTF-8'); 
+        }; inp.click(); 
+    });
+    
+    document.getElementById('saveBtn')?.addEventListener('click', () => { 
+        if (!bookmarkTree.length) { showToast('Save Error', 'Nothing to save', 'warning'); return; }
+        const blob = new Blob([exportToNetscape(bookmarkTree)], {type: 'text/html'}); 
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bookmarks.html'; a.click(); URL.revokeObjectURL(a.href); 
+        showToast('Saved', 'Bookmarks exported successfully!', 'success');
+    });
+    
+    document.getElementById('checkLinksBtn')?.addEventListener('click', checkAllLinks);
+    document.getElementById('syncFaviconBtn')?.addEventListener('click', () => { 
+        function sync(nodes){ for(const n of nodes){ if(n.type==='bookmark' && n.url) n.icon=getSmartFavicon(n.url); if(n.type==='folder' && n.children) sync(n.children); } } 
+        sync(bookmarkTree); renderFullTree(); 
+        showToast('Favicons Synced', 'All favicons updated', 'success');
+    });
+    document.getElementById('syncTitleBtn')?.addEventListener('click', syncAllTitles);
+    document.getElementById('addRootFolderBtn')?.addEventListener('click', addRootFolder);
+    document.getElementById('expandAllBtn')?.addEventListener('click', expandAllFolders);
+    document.getElementById('collapseAllBtn')?.addEventListener('click', collapseAllFolders);
+    document.getElementById('editSelectedBtn')?.addEventListener('click', editSelected);
+    document.getElementById('deleteSelectedBtn')?.addEventListener('click', deleteSelected);
+    document.getElementById('copySelectedBtn')?.addEventListener('click', copySelected);
+    document.getElementById('pasteBtn')?.addEventListener('click', pasteItem);
+    document.getElementById('moveUpBtn')?.addEventListener('click', moveUp);
+    document.getElementById('moveDownBtn')?.addEventListener('click', moveDown);
+    document.getElementById('moveToFolderBtn')?.addEventListener('click', moveToFolder);
+    document.getElementById('bulkSelectAllBtn')?.addEventListener('click', selectAllItems);
+    document.getElementById('bulkClearAllBtn')?.addEventListener('click', clearAllSelections);
+    
+    document.querySelectorAll('.sort-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-sort-mode');
+            if (mode === 'folder-only') sortFolderOnly();
+            else if (mode === 'title-short') sortByTitleShort();
+        });
+    });
+    
+    // No auto sort on load - just render the tree as is
+    renderFullTree();
+</script>
+</body>
+</html>
